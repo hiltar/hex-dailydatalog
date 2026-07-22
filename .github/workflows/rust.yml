@@ -1,0 +1,66 @@
+name: hex-datalog
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [created]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Run cargo clippy
+        run: cargo clippy -- -D warnings
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            output: hex-datalog
+          - target: aarch64-unknown-linux-musl
+            output: hex-datalog-arm
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - name: Cache cargo dependencies
+        uses: Swatinem/rust-cache@v2
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v1
+        with:
+          version: 0.13.0
+      - name: Install cargo-zigbuild
+        uses: taiki-e/install-action@cargo-zigbuild
+      - name: Build
+        run: |
+          cargo zigbuild --release --target ${{ matrix.target }}
+          mv target/${{ matrix.target }}/release/hex-datalog-rs ${{ matrix.output }}
+      - name: Generate Checksum
+        if: github.event_name == 'release'
+        run: sha256sum "${{ matrix.output }}" > "${{ matrix.output }}.sha256"
+      - name: Upload to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ matrix.output }}
+            ${{ matrix.output }}.sha256
+          draft: true
