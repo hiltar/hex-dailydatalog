@@ -1,0 +1,16 @@
+[package]
+name = "daily-logger"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ureq = { version = "2", features = ["json"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = "0.4"
+tiny-keccak = { version = "2", features = ["keccak"] }
+
+[profile.release]
+opt-level = "z"   # optimize for binary size
+lto = true        # link-time optimization across crates
+strip = true      # remove symbols / debug info
