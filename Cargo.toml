@@ -1,5 +1,5 @@
 [package]
-name = "daily-logger"
+name = "hex-datalog-rs"
 version = "0.1.0"
 edition = "2021"
 
